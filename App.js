@@ -2,6 +2,7 @@
 const express = require('express');
 const dbConnect = require('./config');
 const Usuario = require('./model');
+const Vehiculo = require('./vehiculoModel');
 
 // Se crea la aplicación
 const app = express();
@@ -18,7 +19,7 @@ dbConnect();
 // Ruta principal para comprobar el funcionamiento de la API
 app.get('/', (req, res) => {
     res.json({
-        mensaje: 'API de registro e inicio de sesión funcionando'
+        mensaje: 'API del proyecto SmartPark funcionando'
     });
 });
 
@@ -99,6 +100,151 @@ app.post('/login', async (req, res) => {
     }
 });
 
+// Servicio para registrar un vehículo
+app.post('/vehiculos', async (req, res) => {
+    try {
+        const { placa, tipo, propietario } = req.body;
+
+        // Comprueba que se enviaron todos los datos
+        if (!placa || !tipo || !propietario) {
+            return res.status(400).json({
+                mensaje: 'La placa, el tipo y el propietario son obligatorios'
+            });
+        }
+
+        // Comprueba que la placa no esté registrada
+        const vehiculoExistente = await Vehiculo.findOne({
+            placa: placa.toUpperCase()
+        });
+
+        if (vehiculoExistente) {
+            return res.status(400).json({
+                mensaje: 'El vehículo ya se encuentra registrado'
+            });
+        }
+
+        // Crea y guarda el nuevo vehículo
+        const nuevoVehiculo = new Vehiculo({
+            placa: placa.toUpperCase(),
+            tipo,
+            propietario
+        });
+
+        await nuevoVehiculo.save();
+
+        res.status(201).json({
+            mensaje: 'Vehículo registrado correctamente',
+            vehiculo: nuevoVehiculo
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            mensaje: 'Error al registrar el vehículo',
+            error: error.message
+        });
+    }
+});
+// Servicio para consultar todos los vehículos
+app.get('/vehiculos', async (req, res) => {
+    try {
+        const vehiculos = await Vehiculo.find();
+
+        res.status(200).json(vehiculos);
+
+    } catch (error) {
+        res.status(500).json({
+            mensaje: 'Error al consultar los vehículos',
+            error: error.message
+        });
+    }
+});
+// Servicio para consultar un vehículo por su identificador
+app.get('/vehiculos/:id', async (req, res) => {
+    try {
+        const vehiculo = await Vehiculo.findById(req.params.id);
+
+        if (!vehiculo) {
+            return res.status(404).json({
+                mensaje: 'Vehículo no encontrado'
+            });
+        }
+
+        res.status(200).json(vehiculo);
+
+    } catch (error) {
+        res.status(500).json({
+            mensaje: 'Error al consultar el vehículo',
+            error: error.message
+        });
+    }
+});
+// Servicio para actualizar un vehículo
+app.put('/vehiculos/:id', async (req, res) => {
+    try {
+        const { placa, tipo, propietario } = req.body;
+
+        // Comprueba que se enviaron todos los datos
+        if (!placa || !tipo || !propietario) {
+            return res.status(400).json({
+                mensaje: 'La placa, el tipo y el propietario son obligatorios'
+            });
+        }
+
+        const vehiculoActualizado = await Vehiculo.findByIdAndUpdate(
+            req.params.id,
+            {
+                placa: placa.toUpperCase(),
+                tipo,
+                propietario
+            },
+            {
+                new: true,
+                runValidators: true
+            }
+        );
+
+        if (!vehiculoActualizado) {
+            return res.status(404).json({
+                mensaje: 'Vehículo no encontrado'
+            });
+        }
+
+        res.status(200).json({
+            mensaje: 'Vehículo actualizado correctamente',
+            vehiculo: vehiculoActualizado
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            mensaje: 'Error al actualizar el vehículo',
+            error: error.message
+        });
+    }
+});
+// Servicio para eliminar un vehículo
+app.delete('/vehiculos/:id', async (req, res) => {
+    try {
+        const vehiculoEliminado = await Vehiculo.findByIdAndDelete(
+            req.params.id
+        );
+
+        if (!vehiculoEliminado) {
+            return res.status(404).json({
+                mensaje: 'Vehículo no encontrado'
+            });
+        }
+
+        res.status(200).json({
+            mensaje: 'Vehículo eliminado correctamente'
+        });
+
+    } catch (error) {
+        res.status(500).json({
+            mensaje: 'Error al eliminar el vehículo',
+            error: error.message
+        });
+    }
+});
 // Se inicia el servidor
 app.listen(port, () => {
     console.log('Servidor ejecutándose en http://localhost:3000');
