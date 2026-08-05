@@ -1,5 +1,6 @@
 // Se importan los módulos y archivos necesarios
 const express = require('express');
+const cors = require('cors');
 const dbConnect = require('./config');
 const Usuario = require('./model');
 const Vehiculo = require('./vehiculoModel');
@@ -12,6 +13,7 @@ const port = 3000;
 
 // Permite que la API reciba información en formato JSON
 app.use(express.json());
+app.use(cors());
 
 // Se realiza la conexión con MongoDB
 dbConnect();
